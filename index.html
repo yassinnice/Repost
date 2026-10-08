@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haunted Dino Doom: Halloween Horror Movie</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #030108;
+            font-family: 'Creepster', 'Georgia', serif;
+            color: #fff;
+        }
+
+        #webgl-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Top Header UI */
+        .top-nav {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(180deg, rgba(15, 5, 25, 0.9) 0%, rgba(0,0,0,0) 100%);
+            z-index: 10;
+            border-bottom: 1px solid rgba(255, 85, 0, 0.3);
+        }
+
+        .app-title {
+            font-size: 26px;
+            color: #ff5500;
+            text-shadow: 0 0 10px #ff2200, 2px 2px 4px #000;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: rgba(30, 10, 40, 0.8);
+            border: 1px solid #ff5500;
+            color: #ffaa55;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 0 8px rgba(255, 85, 0, 0.2);
+            font-family: sans-serif;
+        }
+
+        .btn:hover {
+            background: #ff5500;
+            color: #000;
+            box-shadow: 0 0 15px #ff5500;
+            transform: translateY(-2px);
+        }
+
+        .btn-active {
+            background: #ff5500;
+            color: #110022;
+            box-shadow: 0 0 15px #ff5500;
+        }
+
+        /* Battle HUD Overlay */
+        .hud-layer {
+            position: absolute;
+            top: 70px;
+            width: 100%;
+            padding: 0 30px;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .health-card {
+            background: rgba(10, 3, 18, 0.75);
+            border: 2px solid #331144;
+            padding: 12px 18px;
+            border-radius: 10px;
+            width: 320px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+        }
+
+        .card-trex { border-color: #ff4500; }
+        .card-carnotaurus { border-color: #9933ff; }
+
+        .dino-name {
+            font-size: 18px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            font-family: sans-serif;
+            font-weight: bold;
+        }
+
+        .name-trex { color: #ff6600; text-shadow: 0 0 8px #ff2200; }
+        .name-carnotaurus { color: #bb66ff; text-shadow: 0 0 8px #8800ff; }
+
+        .bar-container {
+            width: 100%;
+            height: 18px;
+            background: #1a0a2a;
+            border-radius: 9px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s ease-out;
+        }
+
+        .fill-trex { background: linear-gradient(90deg, #ff2200, #ff8800); }
+        .fill-carnotaurus { background: linear-gradient(90deg, #6600cc, #cc33ff); }
+
+        /* Movie Cinematic Banner */
+        .cinematic-banner {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(12, 4, 20, 0.85);
+            border: 2px solid #ff5500;
+            padding: 12px 30px;
+            border-radius: 30px;
+            z-index: 5;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(255, 85, 0, 0.4);
+            pointer-events: none;
+        }
+
+        .banner-text {
+            font-size: 20px;
+            color: #ffaa44;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-family: sans-serif;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff3300;
+        }
+
+        /* Screen Hit Flash */
+        #hit-flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,0,0,0.3) 0%, rgba(0,0,0,0) 70%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.1s ease-out;
+            z-index: 4;
+        }
+
+        /* Toast notification */
+        #toast {
+            position: fixed;
+            bottom: 90px;
+            right: 30px;
+            background: #ff5500;
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-family: sans-serif;
+            box-shadow: 0 0 20px #ff5500;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+    <div id="hit-flash"></div>
+
+    <!-- Top Toolbar -->
+    <div class="top-nav">
+        <div class="app-title">
+            <span>🎃</span> HAUNTED DINO DOOM: HALLOWEEN
+        </div>
+        <div class="nav-controls">
+            <button class="btn btn-active" id="btn-movie">🎬 MOVIE MODE</button>
+            <button class="btn" id="btn-battle">⚔️ GRAVEYARD FIGHT</button>
+            <button class="btn" id="btn-walk">🎃 WALK CAM</button>
+            <button class="btn" id="btn-copy">📋 COPY CODE</button>
+        </div>
+    </div>
+
+    <!-- Health Bars HUD -->
+    <div class="hud-layer">
+        <div class="health-card card-trex">
+            <div class="dino-name name-trex">
+                <span>🔥 SKELETAL T-REX</span>
+                <span id="hp-trex-text">100%</span>
+            </div>
+            <div class="bar-container">
+                <div class="bar-fill fill-trex" id="hp-trex-bar"></div>
+            </div>
+        </div>
+
+        <div class="health-card card-carnotaurus">
+            <div class="dino-name name-carnotaurus">
+                <span>👻 SPECTRAL CARNOTAURUS</span>
+                <span id="hp-carno-text">100%</span>
+            </div>
+            <div class="bar-container">
+                <div class="bar-fill fill-carnotaurus" id="hp-carno-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movie Scene Caption Banner -->
+    <div class="cinematic-banner">
+        <div class="banner-text" id="banner-caption">🌕 SCENE 1: THE BLOOD MOON RISES</div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">Code copied to clipboard!</div>
+
+    <script>
+        // --- SOUND ENGINE (WEB AUDIO API) ---
+        class HalloweenAudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.fireNode = null;
+                this.windNode = null;
+                this.isInitialized = false;
+            }
+
+            init() {
+                if (this.isInitialized) return;
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioCtx();
+                this.isInitialized = true;
+
+                this.startFireSizzle();
+                this.startWindHowl();
+                this.startSpookyOrgan();
+            }
+
+            // 1. Continuous Fire Sizzling & Crackling
+            startFireSizzle() {
+                const bufferSize = this.ctx.sampleRate * 2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1200;
+                filter.Q.value = 3.0;
+
+                const gain = this.ctx.createGain();
+                gain.gain.value = 0.12;
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+
+                // Crackle generator pops
+                setInterval(() => {
+                    if (!this.isInitialized || Math.random() > 0.4) return;
+                    const pop = this.ctx.createOscillator();
+                    const popGain = this.ctx.createGain();
+                    pop.type = 'triangle';
+                    pop.frequency.setValueAtTime(300 + Math.random() * 800, this.ctx.currentTime);
+                    popGain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    popGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+                    pop.connect(popGain);
+                    popGain.connect(this.ctx.destination);
+                    pop.start();
+                    pop.stop(this.ctx.currentTime + 0.03);
+                }, 80);
+            }
+
+            // 2. Howling Wind Effect
+            startWindHowl() {
+                const bufferSize = this.ctx.sampleRate * 3;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                noise.loop = true;
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.Q.value = 8.0;
+
+                const gain = this.ctx.createGain();
+                gain.gain.value = 0.06;
+
+                // LFO modulate wind pitch
+                const lfo = this.ctx.createOscillator();
+                lfo.frequency.value = 0.15;
+                const lfoGain = this.ctx.createGain();
+                lfoGain.gain.value = 400;
+
+                lfo.connect(lfoGain);
+                lfoGain.connect(filter.frequency);
+                filter.frequency.value = 500;
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                noise.start();
+                lfo.start();
+            }
+
+            // 3. Spooky Halloween Organ Drone
+            startSpookyOrgan() {
+                const notes = [146.83, 174.61, 220.00]; // D Minor Triad
+                notes.forEach(freq => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = freq;
+                    gain.gain.value = 0.015;
+
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 600;
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                });
+            }
+
+            // Footstep Sub-Thud
+            playFootstep() {
+                if (!this.isInitialized) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            // Creature Attack Bite & Impact
+            playImpact() {
+                if (!this.isInitialized) return;
+                // Noise explosion
+                const bufferSize = this.ctx.sampleRate * 0.3;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                noise.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+
+                // Screaming tone
+                const osc = this.ctx.createOscillator();
+                const oscGain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.25);
+                oscGain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                osc.connect(oscGain);
+                oscGain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            // Thunder Crack
+            playThunder() {
+                if (!this.isInitialized) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.8);
+                gain.gain.setValueAtTime(0.6, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.8);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.8);
+            }
+        }
+
+        const audio = new HalloweenAudioEngine();
+
+        // --- THREE.JS SCENE SETUP ---
+        const container = document.getElementById('webgl-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x05020c);
+        scene.fog = new THREE.FogExp2(0x0a0418, 0.055); // Spooky purple graveyard mist
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 3, 10);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        container.appendChild(renderer.domElement);
+
+        // --- LIGHTING ---
+        // 1. Blood Moon Red/Orange Rim Light
+        const bloodMoonLight = new THREE.DirectionalLight(0xff3300, 3.5);
+        bloodMoonLight.position.set(-15, 20, -25);
+        bloodMoonLight.castShadow = true;
+        bloodMoonLight.shadow.mapSize.width = 2048;
+        bloodMoonLight.shadow.mapSize.height = 2048;
+        scene.add(bloodMoonLight);
+
+        // 2. Eerie Purple Moonlight Fill
+        const purpleLight = new THREE.DirectionalLight(0x7700ff, 1.2);
+        purpleLight.position.set(15, 15, 10);
+        scene.add(purpleLight);
+
+        // 3. Lightning Flash Light
+        const lightningLight = new THREE.DirectionalLight(0xddeeff, 0);
+        lightningLight.position.set(0, 30, 0);
+        scene.add(lightningLight);
+
+        // 4. Ambient Spooky Glow
+        const ambientLight = new THREE.AmbientLight(0x1a082b, 0.8);
+        scene.add(ambientLight);
+
+        // --- GRAVEYARD ENVIRONMENT PROPS ---
+        // Ground Plane
+        const groundGeo = new THREE.PlaneGeometry(80, 80);
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: 0x0a0810,
+            roughness: 0.95,
+            metalness: 0.1
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 🌕 GIANT BLOOD MOON
+        const moonGeo = new THREE.SphereGeometry(6, 32, 32);
+        const moonMat = new THREE.MeshBasicMaterial({
+            color: 0xff3300,
+            emissive: 0xff1100
+        });
+        const bloodMoon = new THREE.Mesh(moonGeo, moonMat);
+        bloodMoon.position.set(-18, 22, -35);
+        scene.add(bloodMoon);
+
+        // 🪦 TOMBSTONES
+        function createTombstone(x, z, rotY) {
+            const group = new THREE.Group();
+            const stoneMat = new THREE.MeshStandardMaterial({ color: 0x22222a, roughness: 0.8 });
+            const baseGeo = new THREE.BoxGeometry(0.8, 1.4, 0.25);
+            const base = new THREE.Mesh(baseGeo, stoneMat);
+            base.position.y = 0.7;
+            base.castShadow = true;
+            group.add(base);
+
+            // Cross top or curved arch
+            const topGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.25, 16);
+            const top = new THREE.Mesh(topGeo, stoneMat);
+            top.rotation.x = Math.PI / 2;
+            top.position.y = 1.4;
+            top.castShadow = true;
+            group.add(top);
+
+            group.position.set(x, 0, z);
+            group.rotation.y = rotY;
+            scene.add(group);
+        }
+
+        const tombPositions = [
+            [-5, -2, 0.2], [-7, 3, -0.4], [6, -4, -0.3], [8, 2, 0.5],
+            [-3, -8, 0.1], [4, -9, -0.2], [-10, -5, 0.6], [11, -6, -0.5]
+        ];
+        tombPositions.forEach(p => createTombstone(p[0], p[1], p[2]));
+
+        // 🎃 JACK-O'-LANTERNS WITH FLICKERING CANDLE LIGHTS
+        const jackOLanterns = [];
+        function createPumpkin(x, z, scale = 1) {
+            const pGroup = new THREE.Group();
+            const orangeMat = new THREE.MeshStandardMaterial({ color: 0xff4400, roughness: 0.6 });
+            const bodyGeo = new THREE.SphereGeometry(0.5 * scale, 16, 16);
+            bodyGeo.scale(1.2, 0.9, 1.2);
+            const body = new THREE.Mesh(bodyGeo, orangeMat);
+            body.position.y = 0.4 * scale;
+            body.castShadow = true;
+            pGroup.add(body);
+
+            // Stem
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x225511 });
+            const stemGeo = new THREE.CylinderGeometry(0.05 * scale, 0.08 * scale, 0.3 * scale, 8);
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.set(0, 0.85 * scale, 0);
+            pGroup.add(stem);
+
+            // Glowing interior light
+            const pLight = new THREE.PointLight(0xff6600, 3 * scale, 8 * scale);
+            pLight.position.set(0, 0.5 * scale, 0.2 * scale);
+            pGroup.add(pLight);
+
+            pGroup.position.set(x, 0, z);
+            scene.add(pGroup);
+
+            jackOLanterns.push(pLight);
+        }
+
+        const pumpkinPos = [
+            [-2.5, 3], [3, 2.5], [-4, -3], [4.5, -3],
+            [0, -5], [-6, 1], [6, -1], [-1.5, 6]
+        ];
+        pumpkinPos.forEach(p => createPumpkin(p[0], p[1], 1 + Math.random() * 0.4));
+
+        // 🦇 FLYING BATS SWARM
+        const batCount = 30;
+        const batGroup = new THREE.Group();
+        const batGeo = new THREE.BufferGeometry();
+        const batPositions = new Float32Array(batCount * 3);
+        for (let i = 0; i < batCount; i++) {
+            batPositions[i * 3] = (Math.random() - 0.5) * 30;
+            batPositions[i * 3 + 1] = 6 + Math.random() * 8;
+            batPositions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+        }
+        batGeo.setAttribute('position', new THREE.BufferAttribute(batPositions, 3));
+        const batMat = new THREE.PointsMaterial({ color: 0x110515, size: 0.6 });
+        const batSystem = new THREE.Points(batGeo, batMat);
+        scene.add(batSystem);
+
+        // --- PROCEDURAL 3D SKELETAL DINOSAURS ---
+        function buildSkeletalDinosaur(boneColorHex, eyeGlowHex) {
+            const dino = new THREE.Group();
+            const boneMat = new THREE.MeshStandardMaterial({
+                color: boneColorHex,
+                roughness: 0.7,
+                metalness: 0.2
+            });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: eyeGlowHex });
+
+            // Main Pelvis/Torso
+            const pelvisGeo = new THREE.BoxGeometry(0.9, 1.1, 1.6);
+            const pelvis = new THREE.Mesh(pelvisGeo, boneMat);
+            pelvis.position.y = 2.2;
+            pelvis.castShadow = true;
+            dino.add(pelvis);
+
+            // Ribcage Bones
+            for (let i = -0.5; i <= 0.5; i += 0.25) {
+                const ribGeo = new THREE.TorusGeometry(0.7, 0.08, 8, 16, Math.PI);
+                const rib = new THREE.Mesh(ribGeo, boneMat);
+                rib.rotation.y = Math.PI / 2;
+                rib.position.set(0, 2.3, i);
+                dino.add(rib);
+            }
+
+            // Spine & Neck
+            const neckGeo = new THREE.CylinderGeometry(0.2, 0.35, 1.6, 8);
+            const neck = new THREE.Mesh(neckGeo, boneMat);
+            neck.position.set(0, 3.1, 0.8);
+            neck.rotation.x = -Math.PI / 4;
+            dino.add(neck);
+
+            // Skull
+            const skullGroup = new THREE.Group();
+            const headGeo = new THREE.BoxGeometry(0.8, 0.7, 1.4);
+            const head = new THREE.Mesh(headGeo, boneMat);
+            head.position.set(0, 0, 0.7);
+            skullGroup.add(head);
+
+            // Glowing Fiery Eyes
+            const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), eyeMat);
+            eyeL.position.set(0.35, 0.15, 0.8);
+            const eyeR = eyeL.clone();
+            eyeR.position.x = -0.35;
+            skullGroup.add(eyeL);
+            skullGroup.add(eyeR);
+
+            // Snout / Teeth Jaw
+            const jawGeo = new THREE.BoxGeometry(0.7, 0.3, 1.2);
+            const jaw = new THREE.Mesh(jawGeo, boneMat);
+            jaw.position.set(0, -0.35, 0.6);
+            skullGroup.add(jaw);
+
+            skullGroup.position.set(0, 3.8, 1.4);
+            dino.add(skullGroup);
+
+            // Tail
+            const tailGroup = new THREE.Group();
+            let prevTail = tailGroup;
+            for (let t = 0; t < 5; t++) {
+                const tGeo = new THREE.CylinderGeometry(0.25 - t * 0.04, 0.3 - t * 0.04, 0.9, 8);
+                const tSeg = new THREE.Mesh(tGeo, boneMat);
+                tSeg.rotation.x = Math.PI / 2.3;
+                tSeg.position.set(0, 0, -0.7);
+                prevTail.add(tSeg);
+                prevTail = tSeg;
+            }
+            tailGroup.position.set(0, 2.2, -0.8);
+            dino.add(tailGroup);
+
+            // Legs
+            function makeLeg(xSide) {
+                const leg = new THREE.Group();
+                const thighGeo = new THREE.CylinderGeometry(0.3, 0.2, 1.4, 8);
+                const thigh = new THREE.Mesh(thighGeo, boneMat);
+                thigh.position.y = -0.7;
+                leg.add(thigh);
+
+                const shinGeo = new THREE.CylinderGeometry(0.2, 0.15, 1.4, 8);
+                const shin = new THREE.Mesh(shinGeo, boneMat);
+                shin.position.set(0, -1.3, -0.2);
+                shin.rotation.x = Math.PI / 8;
+                thigh.add(shin);
+
+                leg.position.set(xSide * 0.7, 2.2, 0);
+                return leg;
+            }
+
+            const legL = makeLeg(1);
+            const legR = makeLeg(-1);
+            dino.add(legL);
+            dino.add(legR);
+
+            dino.parts = { skullGroup, legL, legR, tailGroup };
+            return dino;
+        }
+
+        // 1. Skeletal T-Rex (Orange Fire Skull)
+        const tRex = buildSkeletalDinosaur(0xd0c0b0, 0xff2200);
+        tRex.position.set(-2.5, 0, 0);
+        scene.add(tRex);
+
+        // 2. Spectral Carnotaurus (Purple Skull + Horns)
+        const carnotaurus = buildSkeletalDinosaur(0x7755aa, 0xbb00ff);
+        // Add Carnotaurus Horns
+        const hornMat = new THREE.MeshStandardMaterial({ color: 0x220033 });
+        const hornGeo = new THREE.ConeGeometry(0.18, 0.8, 8);
+        const hornL = new THREE.Mesh(hornGeo, hornMat);
+        hornL.position.set(0.35, 0.45, 0.6);
+        hornL.rotation.z = -Math.PI / 5;
+        const hornR = hornL.clone();
+        hornR.position.x = -0.35;
+        hornR.rotation.z = Math.PI / 5;
+        carnotaurus.parts.skullGroup.add(hornL);
+        carnotaurus.parts.skullGroup.add(hornR);
+
+        carnotaurus.position.set(2.5, 0, 0);
+        carnotaurus.rotation.y = -Math.PI / 1.2;
+        scene.add(carnotaurus);
+
+        // --- MOVIE MODE & SCENE SEQUENCER ---
+        let currentMode = 'MOVIE'; // 'MOVIE', 'BATTLE', 'WALK'
+        let movieSceneIndex = 0;
+        let sceneTimer = 0;
+
+        const movieScenes = [
+            { caption: "🌕 SCENE 1: THE BLOOD MOON RISES", duration: 6, camPos: [-8, 2, 12], target: [-2, 2, 0] },
+            { caption: "👻 SCENE 2: SPECTRAL CARNOTAURUS STALKS", duration: 6, camPos: [8, 2.5, 8], target: [2, 2, 0] },
+            { caption: "⚡ SCENE 3: GRAVEYARD HORROR CLASH", duration: 7, camPos: [0, 1.8, 6], target: [0, 2, 0] },
+            { caption: "💥 SCENE 4: CRITICAL BONE CRUNCH BITE", duration: 5, camPos: [-3, 3.5, 4], target: [1, 2, 0] },
+            { caption: "🏆 SCENE 5: HALLOWEEN VICTORY ROAR", duration: 6, camPos: [0, 1.2, 5], target: [-2, 2.5, 0] }
+        ];
+
+        // UI Mode Button Listeners
+        const btnMovie = document.getElementById('btn-movie');
+        const btnBattle = document.getElementById('btn-battle');
+        const btnWalk = document.getElementById('btn-walk');
+        const btnCopy = document.getElementById('btn-copy');
+        const captionBanner = document.getElementById('banner-caption');
+
+        function setMode(mode) {
+            currentMode = mode;
+            btnMovie.classList.remove('btn-active');
+            btnBattle.classList.remove('btn-active');
+            btnWalk.classList.remove('btn-active');
+
+            if (mode === 'MOVIE') {
+                btnMovie.classList.add('btn-active');
+                movieSceneIndex = 0;
+                sceneTimer = 0;
+            } else if (mode === 'BATTLE') {
+                btnBattle.classList.add('btn-active');
+                captionBanner.innerText = "⚔️ GRAVEYARD BATTLE IN PROGRESS";
+            } else if (mode === 'WALK') {
+                btnWalk.classList.add('btn-active');
+                captionBanner.innerText = "🎃 HALLOWEEN GRAVEYARD WALK";
+            }
+        }
+
+        btnMovie.addEventListener('click', () => { audio.init(); setMode('MOVIE'); });
+        btnBattle.addEventListener('click', () => { audio.init(); setMode('BATTLE'); });
+        btnWalk.addEventListener('click', () => { audio.init(); setMode('WALK'); });
+
+        // Copy Code Button Functionality
+        btnCopy.addEventListener('click', () => {
+            const fullHTML = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            navigator.clipboard.writeText(fullHTML).then(() => {
+                showToast("🎃 Full Code Copied to Clipboard!");
+            }).catch(() => {
+                // Fallback copy
+                const textArea = document.createElement('textarea');
+                textArea.value = fullHTML;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showToast("🎃 Full Code Copied to Clipboard!");
+            });
+        });
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- ANIMATION & BATTLE LOOP ---
+        const clock = new THREE.Clock();
+        let hpTRex = 100;
+        let hpCarno = 100;
+        let lastAttackTime = 0;
+
+        function triggerHitFlash() {
+            const flash = document.getElementById('hit-flash');
+            flash.style.opacity = '1';
+            setTimeout(() => flash.style.opacity = '0', 150);
+        }
+
+        function triggerLightning() {
+            if (Math.random() < 0.008) {
+                lightningLight.intensity = 8;
+                audio.playThunder();
+                setTimeout(() => lightningLight.intensity = 0, 120);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // 1. Jack-o'-Lantern Candle Flicker
+            jackOLanterns.forEach((light, idx) => {
+                light.intensity = 2.5 + Math.sin(time * 10 + idx) * 1.0 + (Math.random() - 0.5) * 0.8;
+            });
+
+            // 2. Lightning Flashes
+            triggerLightning();
+
+            // 3. Bat Swarm Motion
+            const posAttr = batGeo.attributes.position;
+            for (let i = 0; i < batCount; i++) {
+                let x = posAttr.getX(i);
+                let z = posAttr.getZ(i);
+                x += Math.sin(time * 2 + i) * 0.08;
+                z += Math.cos(time * 2 + i) * 0.08;
+                posAttr.setXYZ(i, x, posAttr.getY(i), z);
+            }
+            posAttr.needsUpdate = true;
+
+            // 4. Dinosaur Walking / Fighting Procedural Motion
+            const legSwing = Math.sin(time * 6) * 0.5;
+            tRex.parts.legL.rotation.x = legSwing;
+            tRex.parts.legR.rotation.x = -legSwing;
+            carnotaurus.parts.legL.rotation.x = -legSwing;
+            carnotaurus.parts.legR.rotation.x = legSwing;
+
+            tRex.parts.tailGroup.rotation.y = Math.sin(time * 3) * 0.3;
+            carnotaurus.parts.tailGroup.rotation.y = -Math.sin(time * 3) * 0.3;
+
+            // Sound on footstep strike
+            if (Math.abs(legSwing) > 0.48) {
+                audio.playFootstep();
+            }
+
+            // 5. Combat Attacks Logic
+            if (time - lastAttackTime > 2.2 && (currentMode === 'MOVIE' || currentMode === 'BATTLE')) {
+                lastAttackTime = time;
+                audio.playImpact();
+                triggerHitFlash();
+
+                // Lunge & Bite animations
+                tRex.position.x += 0.8;
+                carnotaurus.position.x -= 0.8;
+                tRex.parts.skullGroup.rotation.x = 0.4;
+                carnotaurus.parts.skullGroup.rotation.x = -0.4;
+
+                setTimeout(() => {
+                    tRex.position.x -= 0.8;
+                    carnotaurus.position.x += 0.8;
+                    tRex.parts.skullGroup.rotation.x = 0;
+                    carnotaurus.parts.skullGroup.rotation.x = 0;
+                }, 300);
+
+                // Health decrease
+                hpTRex = Math.max(15, hpTRex - Math.floor(Math.random() * 12 + 5));
+                hpCarno = Math.max(10, hpCarno - Math.floor(Math.random() * 14 + 6));
+
+                document.getElementById('hp-trex-bar').style.width = hpTRex + '%';
+                document.getElementById('hp-trex-text').innerText = hpTRex + '%';
+                document.getElementById('hp-carno-bar').style.width = hpCarno + '%';
+                document.getElementById('hp-carno-text').innerText = hpCarno + '%';
+            }
+
+            // 6. Camera Choreography Modes
+            if (currentMode === 'MOVIE') {
+                sceneTimer += delta;
+                const curScene = movieScenes[movieSceneIndex];
+
+                captionBanner.innerText = curScene.caption;
+
+                // Smooth camera interpolation
+                camera.position.x += (curScene.camPos[0] - camera.position.x) * 0.03;
+                camera.position.y += (curScene.camPos[1] - camera.position.y) * 0.03;
+                camera.position.z += (curScene.camPos[2] - camera.position.z) * 0.03;
+                camera.lookAt(curScene.target[0], curScene.target[1], curScene.target[2]);
+
+                if (sceneTimer > curScene.duration) {
+                    sceneTimer = 0;
+                    movieSceneIndex = (movieSceneIndex + 1) % movieScenes.length;
+                }
+            } else if (currentMode === 'WALK') {
+                // Orbiting Walk Cam
+                camera.position.x = Math.sin(time * 0.3) * 12;
+                camera.position.z = Math.cos(time * 0.3) * 12;
+                camera.position.y = 3 + Math.sin(time * 0.5) * 1;
+                camera.lookAt(0, 2, 0);
+            } else if (currentMode === 'BATTLE') {
+                // Action Battle Dynamic Cam
+                camera.position.x = Math.sin(time * 1.5) * 7;
+                camera.position.z = 7 + Math.cos(time * 1.5) * 2;
+                camera.position.y = 2.2 + Math.sin(time * 2) * 0.4;
+                camera.lookAt(0, 2, 0);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize audio on first click anywhere
+        window.addEventListener('click', () => audio.init(), { once: true });
+
+        // Start render loop
+        animate();
+    </script>
+</body>
+</html>
